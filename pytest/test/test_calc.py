@@ -10,3 +10,9 @@ class TestCalc:
         calculator = Calculator()
         assert 2 == calculator.add(1, 1)
 
+    def test_div(self):
+        calculator = Calculator()
+        assert 2 == calculator.div(10, 5)
+
+
+
