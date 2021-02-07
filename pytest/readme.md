@@ -26,6 +26,8 @@ def test_answer():
 
 `pytest test_sample.py`
 
+
+
 ### 常用执行参数
 
 - 执行当前目录下名称中包含“关键字”的 py 文件： `pytest -k "关键字"`
@@ -48,6 +50,8 @@ def test_answer():
             ```
 
     - 执行 `pytest -m 标签名`
+    
+- 显示 fixture 的执行过程 `--setupshow`
 
 
 
@@ -270,11 +274,320 @@ PASSED我是 teardown
 
 
 
-Pytest 提供的异常捕获功能
-
-`with pytest raises`
+## Fixture
 
 
 
+Fixture 的功能类似于 setup, teardown ，前者比后者更灵活。
 
+比如测试搜索和购物车功能不需要登录，测试订单功能需要登录：
+
+test_fixture.py
+
+```python
+import pytest
+
+
+# 给 login 函数添加 fixture
+@pytest.fixture()
+def login():
+    print("登录")
+
+
+def test_search():
+    print("测试搜索功能")
+
+
+def test_cart():
+    print("测试购物车功能")
+
+
+# 测试订单功能需要登录，把 login 函数作为参数传递进来
+def test_order(login):
+    print("测试订单功能")
+
+```
+
+查看 fixture 的执行过程：`pytest test_fixture --setupshow` 
+
+执行结果：
+
+```bash
+collected 3 items                                                                                                                                                                                                         
+
+test_fixture.py 
+        test_fixture.py::test_search.
+        test_fixture.py::test_cart.
+        SETUP    F login
+        test_fixture.py::test_order (fixtures used: login).
+        TEARDOWN F login
+```
+
+Fixture 的执行过程显示：会在执行测试订单功能之前和之后各执行一次登陆功能。
+
+除了作为参数传递，还可以通过装饰器 `@pytest.mark.usefixtures` 调用：
+
+```python
+@pytest.mark.usefixtures("login")
+def test_order():
+    print("测试订单功能")
+```
+
+可以添加多个 fixture
+
+```python
+import pytest
+
+
+# 给 login 函数添加 fixture
+@pytest.fixture()
+def login():
+    print("登录")
+
+
+@pytest.fixture()
+def get_username():
+    print("获取用户名")
+
+
+def test_search():
+    print("测试搜索功能")
+
+
+def test_cart():
+    print("测试购物车功能")
+
+
+# 通过 usefixtures 调用 fixture
+@pytest.mark.usefixtures("get_username")
+@pytest.mark.usefixtures("login")
+def test_order():
+    print("测试订单功能")
+
+```
+
+执行测试：`pytest test_fixture -vs`
+
+执行结果：
+
+```bash
+collected 3 items                                                                                                                                                                                                         
+
+test_fixture.py::test_search 测试搜索功能
+PASSED
+test_fixture.py::test_cart 测试购物车功能
+PASSED
+test_fixture.py::test_order 登录
+获取用户名
+测试订单功能
+PASSED
+```
+
+执行结果显示会先调用 login 再调用 get_username
+
+
+
+`@pytest.fixture(autouse=True)` 
+
+如果设置了 `autouse=True` 那么所有的测试方法都会调用该 fixture 
+
+```python
+@pytest.fixture(autouse=True)
+def login():
+    print("登录")
+
+......
+```
+
+执行结果：
+
+```bash
+collected 3 items                                                                                                                                                                                                         
+
+test_fixture.py::test_search 登录
+测试搜索功能
+PASSED
+test_fixture.py::test_cart 登录
+测试购物车功能
+PASSED
+test_fixture.py::test_order 登录
+获取用户名
+测试订单功能
+PASSED
+```
+
+
+
+fixture 调用 fixture
+
+```python
+@pytest.fixture()
+def login():
+    print("登录")
+
+# fixture get_username 调用 fixture login
+@pytest.fixture()
+def get_username(login):
+    print("获取用户名")
+
+......
+
+# 这里通过 usefixtures 只调用 get_username，不调用 login
+@pytest.mark.usefixtures("get_username")
+def test_order():
+    print("测试订单功能")
+```
+
+执行结果：
+
+```bash
+collected 3 items                                                                                                                                                                                                         
+
+test_fixture.py::test_search 测试搜索功能
+PASSED
+test_fixture.py::test_cart 测试购物车功能
+PASSED
+test_fixture.py::test_order 登录
+获取用户名
+测试订单功能
+PASSED
+```
+
+执行结果显示在调用 get_username 之前，先调用了 login
+
+
+
+fixture 的 `yield`
+
+执行测试方法之前，执行 `yield` 之前的部分，执行测试方法之后，执行 `yield` 之后的部分
+
+```python
+@pytest.fixture()
+def login():
+    print("登录")
+    yield
+    print("登出")
+......
+```
+
+执行结果：
+
+```bash
+collected 3 items                                                                                                                                                                                                         
+
+test_fixture.py::test_search 测试搜索功能
+PASSED
+test_fixture.py::test_cart 测试购物车功能
+PASSED
+test_fixture.py::test_order 登录
+获取用户名
+测试订单功能
+PASSED登出
+```
+
+使用 `yield` 返回信息
+
+```python
+......
+# 给 login 函数添加 fixture
+@pytest.fixture()
+def login():
+    print("登录")
+    message = "我是 message"
+    yield message
+    print("登出")
+
+......
+# 此时只能通过传参的方式调用 fixture
+def test_order(login):
+    print("测试订单功能")
+    print(login)
+```
+
+执行结果：
+
+```bash
+collected 3 items                                                                                                                                                                                                         
+
+test_fixture.py::test_search 测试搜索功能
+PASSED
+test_fixture.py::test_cart 测试购物车功能
+PASSED
+test_fixture.py::test_order 登录
+测试订单功能
+我是 message
+PASSED登出
+```
+
+注意，这里只能通过传参的方式调用 fixture ，不然 `print(login)` 输出的是 `login` 这个函数的对象。
+
+
+
+scope
+
+`scope` 用来设置 fixture 的作用域，类似于 setup, teardown 的 module, class, function, method 这种
+
+`scope` 的作用域有：函数（默认），类，模块，session 
+
+> "function" (default), "class", "module", "session" or "invocation".
+
+- session
+- 模块
+- 类
+- 函数
+
+
+
+conftest 模块
+
+这个模块里面可以添加一些自定义的功能，在当前目录下的所有模块都可以共用这些自定义的功能。可以把常用的 `fixture` 放在这里。使用了 `conftest` 中的功能的模块，在执行的时候，会在当前目录下找 `conftest` 模块，如果当前目录下没有找到 `conftest` 模块，会向上一级目录查找...
+
+新建 conftest.py （文件名固定，不能修改）
+
+```python
+import pytest
+
+
+@pytest.fixture()
+def login():
+    print("登录")
+    message = "我是 message"
+    yield message
+    print("登出")
+```
+
+test_fixture.py 只保留以下内容：
+
+```python
+def test_search():
+    print("测试搜索功能")
+
+
+def test_cart():
+    print("测试购物车功能")
+
+
+def test_order(login):
+    print("测试订单功能")
+    print(login)
+```
+
+执行：`pytest test_fixture.py -vs`
+
+执行结果：
+
+```bash
+collected 3 items                                                                                                                                                                                                         
+
+test_fixture.py::test_search 测试搜索功能
+PASSED
+test_fixture.py::test_cart 测试购物车功能
+PASSED
+test_fixture.py::test_order 登录
+测试订单功能
+我是 message
+PASSED登出
+```
+
+可以看到，test_fixture.py 文件中不需要导入任何模块，就可以执行成功。
 
