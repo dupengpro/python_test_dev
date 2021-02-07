@@ -217,6 +217,7 @@ class TestCalc:
     # setup 在每个测试方法执行之前，执行一次
     def setup(self):
         print("我是 setup")
+        
     # 测试加法，使用从 yml 文件中读取到的数据进行参数化 (key, values, 描述)
     @pytest.mark.parametrize("a, b, result", datas["add"]["datas"], ids=datas["add"]["ids"])
     def test_add(self, a, b, result):
@@ -333,7 +334,7 @@ def test_order():
     print("测试订单功能")
 ```
 
-可以添加多个 fixture
+### 添加多个 fixture
 
 ```python
 import pytest
@@ -418,7 +419,7 @@ PASSED
 
 
 
-fixture 调用 fixture
+### fixture 调用 fixture
 
 ```python
 @pytest.fixture()
@@ -457,7 +458,7 @@ PASSED
 
 
 
-fixture 的 `yield`
+### fixture 的 yield
 
 执行测试方法之前，执行 `yield` 之前的部分，执行测试方法之后，执行 `yield` 之后的部分
 
@@ -523,7 +524,7 @@ PASSED登出
 
 
 
-scope
+### scope
 
 `scope` 用来设置 fixture 的作用域，类似于 setup, teardown 的 module, class, function, method 这种
 
@@ -538,7 +539,7 @@ scope
 
 
 
-conftest 模块
+### conftest 模块
 
 这个模块里面可以添加一些自定义的功能，在当前目录下的所有模块都可以共用这些自定义的功能。可以把常用的 `fixture` 放在这里。使用了 `conftest` 中的功能的模块，在执行的时候，会在当前目录下找 `conftest` 模块，如果当前目录下没有找到 `conftest` 模块，会向上一级目录查找...
 
