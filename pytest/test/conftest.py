@@ -1,3 +1,5 @@
+from typing import List
+
 import pytest
 
 
@@ -7,3 +9,8 @@ def login():
     message = "我是 message"
     yield message
     print("登出")
+
+def pytest_collection_modifyitems(
+    session: "Session", config: "Config", items: List["Item"]
+) -> None:
+    print(items)

@@ -543,6 +543,8 @@ PASSED登出
 
 这个模块里面可以添加一些自定义的功能，在当前目录下的所有模块都可以共用这些自定义的功能。可以把常用的 `fixture` 放在这里。使用了 `conftest` 中的功能的模块，在执行的时候，会在当前目录下找 `conftest` 模块，如果当前目录下没有找到 `conftest` 模块，会向上一级目录查找...
 
+`conftest` 所在的目录必须是一个包（有 `__init__.py` 文件）
+
 新建 conftest.py （文件名固定，不能修改）
 
 ```python
@@ -591,4 +593,368 @@ PASSED登出
 ```
 
 可以看到，test_fixture.py 文件中不需要导入任何模块，就可以执行成功。
+
+
+
+使用 fixture 替换测试计算机模块中的 setup 和 teardown
+
+test_calc.py
+
+```python
+import sys
+import pytest
+import yaml
+
+sys.path.append("..")
+
+
+from ..dev.calculator import Calculator
+
+
+# 读取 yml 文件中的数据
+def get_datas():
+    with open("../datas/calc.yml") as f:
+        datas = yaml.safe_load(f)
+        return datas
+
+# 添加 fixture 替换 setup 和 teardown
+@pytest.fixture()
+def get_instance():
+    print("开始")
+    calculator = Calculator()
+    yield calculator
+    print("结束")
+
+
+
+class TestCalc:
+    # 从 yml 文件中读取到的数据
+    datas = get_datas()
+
+    # 通过传参的方式调用 get_instance
+    @pytest.mark.parametrize("a, b, result", datas["add"]["datas"], ids=datas["add"]["ids"])
+    def test_add(self, a, b, result, get_instance):
+        assert get_instance.add(a, b) == result
+
+    # 通过传参的方式调用 get_instance
+    @pytest.mark.parametrize("a, b, result", datas["div"]["datas"], ids=datas["div"]["ids"])
+    def test_div(self, a, b, result, get_instance):
+            assert get_instance.div(a, b) == result
+
+    # 测试除法，除数为 0 的情况
+    @pytest.mark.parametrize("a, b, result", datas["div_error"]["datas"], ids=datas["div_error"]["ids"])
+    def test_div_error(self, a, b, result):
+        # 使用 pytest 自带的异常捕获功能，捕获除数为 0 的异常
+        with pytest.raises(ZeroDivisionError):
+            result = a / b
+
+```
+
+执行：`pytest test_calc.py -vs`
+
+执行结果：
+
+```bash
+collected 6 items                                                                                                                                                                                                         
+
+test_calc.py::TestCalc::test_add[case1] 开始
+PASSED结束
+
+test_calc.py::TestCalc::test_add[case2] 开始
+PASSED结束
+
+test_calc.py::TestCalc::test_add[case3] 开始
+PASSED结束
+
+test_calc.py::TestCalc::test_div[case1] 开始
+PASSED结束
+
+test_calc.py::TestCalc::test_div[case2] 开始
+PASSED结束
+
+test_calc.py::TestCalc::test_div_error[ZeroDivisionError] PASSED
+```
+
+
+
+### fixture 参数化
+
+test_fixture_param.py
+
+```python
+# fixture 参数化
+import pytest
+
+
+@pytest.fixture(params=["xiaoming", "xiaohong"])
+def login(request):
+    print("登录")
+    # 返回参数，这里 request 也是一个 fixture
+    return request.param
+
+
+def test_login(login):
+    name = login
+    print(name + "登录")
+```
+
+
+
+执行：`pytest test_fixture_param.py -vs`
+
+执行结果：
+
+```bash
+collected 2 items                                                                                                                                                                                                         
+
+test_fixture_param.py::test_login[xiaoming] 登录
+xiaoming登录
+PASSED
+test_fixture_param.py::test_login[xiaohong] 登录
+xiaohong登录
+PASSED
+```
+
+
+
+
+
+## 常用插件
+
+### 失败用例重新运行
+
+pytest-rerunfailures
+
+安装 `pip install pytest-rerunfailures`
+
+test_rerun.py
+
+```python
+def test_rerun():
+    assert 1 == 2
+```
+
+重新运行 5 次，执行：`pytest test_rerun.py -vs --reruns 5`
+
+执行结果：
+
+```bash
+collected 1 item                                                                                                                                                                                                          
+
+test_rerun.py::test_rerun RERUN
+test_rerun.py::test_rerun RERUN
+test_rerun.py::test_rerun RERUN
+test_rerun.py::test_rerun RERUN
+test_rerun.py::test_rerun RERUN
+test_rerun.py::test_rerun FAILED
+```
+
+重新运行 5 次，每次之间间隔 1 秒钟：
+
+- 方式一，执行：`pytest test_rerun.py -vs --reruns 5 --reruns-delay 1`
+
+- 方式二，使用装饰器：
+
+  ```python
+  import pytest
+  
+  
+  @pytest.mark.flaky(reruns=5, reruns_delay=1)
+  def test_rerun():
+      assert 1 == 2
+  ```
+
+  
+
+### 控制执行顺序
+
+pytest-ordering
+
+安装 `pip install pytest-ordering`
+
+使用前：test_order.py
+
+```python
+def test_foo():
+    assert True
+
+
+def test_bar():
+    assert True
+```
+
+执行：`pytest test_order.py -vs`
+
+执行结果：
+
+```bash
+collected 2 items                                                                                                                                                                                                         
+
+test_order.py::test_foo PASSED
+test_order.py::test_bar PASSED
+```
+
+使用后：test_order.py
+
+```python
+import pytest
+
+
+@pytest.mark.run(order=2)
+def test_foo():
+    assert True
+
+
+@pytest.mark.run(order=1)
+def test_bar():
+    assert True
+```
+
+执行结果：
+
+```bash
+collected 2 items                                                                                                                                                                                                         
+
+test_order.py::test_bar PASSED
+test_order.py::test_foo PASSED
+```
+
+通过对比执行结果可以看到，使用前是按照从上到下的顺序执行的，使用后是按照 `order` 的值由小到大执行的。
+
+ 
+
+### 用例依赖
+
+pytest-dependency
+
+设置用例之间的依赖关系，
+
+安装 `pip install pytest-dependency`
+
+添加依赖：`@pytest.mark.dependency()`
+
+test_dependency.py
+
+```python
+# 官方例子
+import pytest
+
+
+@pytest.mark.dependency()
+@pytest.mark.xfail(reason="deliberate fail")
+def test_a():
+    # a 失败
+    assert False
+
+@pytest.mark.dependency()
+def test_b():
+    pass
+
+@pytest.mark.dependency(depends=["test_a"])
+def test_c():
+    # c 依赖 a ，a 失败了，所以 c 不会执行
+    pass
+
+@pytest.mark.dependency(depends=["test_b"])
+def test_d():
+    # d 依赖 b
+    pass
+
+@pytest.mark.dependency(depends=["test_b", "test_c"])
+def test_e():
+    # e 依赖 b 和 c ， c 不会执行，e 会不会执行呢？
+    pass
+```
+
+执行：`pytest test_dependency.py -vs`
+
+执行结果：
+
+```bash
+collected 5 items                                                                                                                                                                                                         
+
+test_dependency.py::test_a XFAIL (deliberate fail)
+test_dependency.py::test_b PASSED
+test_dependency.py::test_c SKIPPED (test_c depends on test_a)
+test_dependency.py::test_d PASSED
+test_dependency.py::test_e SKIPPED (test_e depends on test_c)
+```
+
+通过执行结果可以看到 c 和 e 都跳过了，没有执行。
+
+
+
+### 并发执行
+
+pytest-xdist
+
+安装： `pip install pytest-xdist`
+
+使用：
+
+- `pytest -n number` 用 number 指定线程数
+
+- `pytest -n auto` 自动分配线程数
+
+test_xdist.py
+
+```python
+import time
+
+
+def test_1():
+    time.sleep(3)
+    print(1)
+
+
+def test_2():
+    time.sleep(3)
+    print(2)
+
+
+def test_3():
+    time.sleep(3)
+    print(3)
+```
+
+使用前，执行：`pytest test_xdist.py -vs`
+
+执行结果：
+
+```bash
+collected 3 items                                                                                                                                                                                                         
+
+test_xdist.py::test_1 1
+PASSED
+test_xdist.py::test_2 2
+PASSED
+test_xdist.py::test_3 3
+PASSED
+
+3 passed in 9.02s 
+```
+
+使用后，执行：`pytest test_xdist.py -vs -n auto`
+
+执行结果：
+
+```bash
+[gw0] PASSED test_xdist.py::test_1 
+[gw2] PASSED test_xdist.py::test_3 
+[gw1] PASSED test_xdist.py::test_2 
+
+3 passed in 4.10s 
+```
+
+对比使用前后的执行结果，可以看到使用后的执行用时缩短了近 5 秒钟。
+
+
+
+## hook 函数
+
+`/venv/lib/python3.9/site-packages/_pytest/hookspec.py` 
+
+自己写的 `hook` 函数，可以放在 `conftest` 模块中
+
+修改 `pytest_collection_modifyitems`
 

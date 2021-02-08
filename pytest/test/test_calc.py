@@ -9,48 +9,49 @@ from ..dev.calculator import Calculator
 
 
 # 读取 yml 文件中的数据
-def get_datas():
-    with open("../datas/calc.yml") as f:
-        datas = yaml.safe_load(f)
-        return datas
+def get_datas(name):
+    with open("../datas/calc.yml", encoding="utf-8") as f:
+        all_datas = yaml.safe_load(f)
+        datas = all_datas["datas"][name]
+        ids = all_datas["ids"][name]
+        return datas, ids
+
+
+@pytest.fixture()
+def get_instance():
+    print("开始")
+    calculator = Calculator()
+    yield calculator
+    print("结束")
+
+
+@pytest.fixture(params=get_datas("add")[0], ids=get_datas("add")[1])
+def get_datas_with_fixture(request):
+    return request.param
 
 
 class TestCalc:
-    # 从 yml 文件中读取到的数据
-    datas = get_datas()
 
-    # setup_class 在类被调用的时候，在所有测试方法执行之前，执行一次
-    def setup_class(self):
-        print("我是 setup_class")
-        self.calculator = Calculator()
-
-    # setup 在每个测试方法被调用之前，执行一次
-    def setup(self):
-        print("我是 setup")
-    # 测试加法，使用从 yml 文件中读取到的数据进行参数化 (key, values, 描述)
-    @pytest.mark.parametrize("a, b, result", datas["add"]["datas"], ids=datas["add"]["ids"])
-    def test_add(self, a, b, result):
-        assert self.calculator.add(a, b) == result
+    def test_add(self, get_instance, get_datas_with_fixture):
+        data = get_datas_with_fixture
+        assert get_instance.add(data[0], data[1]) == data[2]
 
     # 测试除法
-    @pytest.mark.parametrize("a, b, result", datas["div"]["datas"], ids=datas["div"]["ids"])
-    def test_div(self, a, b, result):
-            assert self.calculator.div(a, b) == result
+    # @pytest.mark.parametrize("a, b, result", datas["div"]["datas"], ids=datas["div"]["ids"])
+    # def test_div(self, get_instance, get_datas_with_fixture):
+    #     data = get_datas_with_fixture
+    #     assert get_instance.div(data[0], data[1]) == data[2]
 
-    # 测试除法，除数为 0 的情况
-    @pytest.mark.parametrize("a, b, result", datas["div_error"]["datas"], ids=datas["div_error"]["ids"])
-    def test_div_error(self, a, b, result):
-        # 使用 pytest 自带的异常捕获功能，捕获除数为 0 的异常
-        with pytest.raises(ZeroDivisionError):
-            result = a / b
+    # # 测试除法，除数为 0 的情况
+    # # @pytest.mark.parametrize("a, b, result", datas["div_error"]["datas"], ids=datas["div_error"]["ids"])
+    # def test_div_error(self, get_instance, get_datas_with_fixture):
+    #     # 使用 pytest 自带的异常捕获功能，捕获除数为 0 的异常
+    #     with pytest.raises(ZeroDivisionError):
+    #         data = get_datas_with_fixture["div_error"]
+    #         print(data)
+    #         # assert get_instance.div(data[0], data[1]) == data[2]
 
-    # 在每个测试方法执行之后，执行一次
-    def teardown(self):
-        print("我是 teardown")
 
-    # 在所有测试方法执行之后，执行一次
-    def teardown_class(self):
-        print("我是 teardown_class")
 
 
 
