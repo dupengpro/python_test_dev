@@ -952,9 +952,53 @@ PASSED
 
 ## hook 函数
 
-`/venv/lib/python3.9/site-packages/_pytest/hookspec.py` 
+hook 函数 `/venv/lib/python3.9/site-packages/_pytest/hookspec.py` 
 
-自己写的 `hook` 函数，可以放在 `conftest` 模块中
+我们可以对 `hook` 函数根据自己的需求做一些修改，修改好之后放在 `conftest` 模块中，这样在执行测试的时候会先加载 `conftest` 模块，我们修改的 `hook` 函数也就生效了。
 
 修改 `pytest_collection_modifyitems`
+
+conftest.py
+
+```python
+# 这个 hook 函数会收集所有测试用例
+def pytest_collection_modifyitems(
+    session: "Session", config: "Config", items: List["Item"]
+) -> None:
+    # 这里的 items 是测试用例列表
+
+    # 对测试用例进行中文编码设置
+    for item in items:
+        # item.name 是测试用例的名称
+        item.name = item.name.encode("utf-8").decode("unicode-escape")
+        # item._nodeid 是测试用例的路径
+        item._nodeid = item.nodeid.encode("utf-8").decode("unicode-escape")
+
+        # 给测试用例加标签
+        if "add" in item._nodeid:
+            item.add_marker(pytest.mark.add)
+
+    # 反转测试用例列表的顺序
+    items.reverse()
+```
+
+
+
+打包文件
+
+打包分享自己修改的 `hook` 函数
+
+创建包，包里面包含：README.md, setup.py, tests, 包
+
+安装软件：
+
+1. setuptools 虚拟环境中默认已经安装了
+
+2. wheel 需要自己安装：`pip install wheel`
+
+打包，执行：`python setup.py sdist bdist_wheel` 
+
+执行完成之后，会多出两个文件夹：build 和 dist
+
+进入 dist 目录下可以通过 `pip` 安装 ：`pip install pytest_encode-0.1-py3-none-any.whl`
 
