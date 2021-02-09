@@ -532,10 +532,10 @@ PASSED登出
 
 > "function" (default), "class", "module", "session" or "invocation".
 
-- session
-- 模块
-- 类
-- 函数
+- session 全局/整个会话过程
+- 模块 模块被调用时执行一次
+- 类 类被调用时执行一次
+- 函数 函数/方法被调用时执行一次
 
 
 
