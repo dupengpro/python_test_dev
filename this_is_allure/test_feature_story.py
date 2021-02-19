@@ -1,5 +1,4 @@
 import allure
-import pytest
 
 
 @allure.feature("登录模块")
