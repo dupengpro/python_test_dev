@@ -299,7 +299,7 @@ def test_attach_picture():
 
 
 
-清空上一次的测试结果：`--clean-aluredir`
+清空上一次的测试结果：`--clean-alluredir`
 
 运行一个本地服务分享测试报告：
 
