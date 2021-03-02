@@ -379,5 +379,155 @@ PASSED
 
 
 
+## 复用浏览器
+
+不重新打开新的浏览器。应用场景：比如有时候需要通过手机扫码登录，selenium 无法实现扫码操作。可以通过复用浏览器的方式，因为复用的浏览器会记录浏览器的会话状态。
+
+命令行输入 `chrome -remote-debugging-port=9999`
+
+```python
+chrome_arg = webdeiver.ChromeOptions()
+chrome_arg.debugger_address = '127.0.0.1:9999'
+self.driver = webdriver.Chrome(options=chrome_arg)
+self.driver.get('...')
+```
+
+
+
+## 使用 cookie
+
+```python
+...
+# 登录
+...
+# 获取
+cookies = driver.get_cookies()
+# 添加
+for i in cookies:
+	driver.add_cookie(i)
+
+```
+
+
+
 ## page object 设计模式
+
+页面 --> 类
+
+​	首页 --> class HomePage
+
+​	注册页 --> class RegisterPage
+
+​	登录页 --> class LoginPage
+
+​	...
+
+pages
+
+首页有哪些功能：进入注册页，进入登录页...
+
+home_page.py
+
+```python
+class HomePage:
+	def goto_register(self):
+		pass
+  def goto_login(self):
+    pass
+```
+
+注册页有哪些功能：注册...
+
+register_page.py
+
+```python
+class RegisterPage:
+	def register(self):
+    pass
+```
+
+登录页有哪些功能：进入注册页，登录，忘记密码...
+
+login_page.py
+
+```python
+class LoginPage:
+  def goto_register(self):
+		pass
+  
+  def login(self):
+    pass
+  
+	def forget_password(self)
+  	pass
+```
+
+实现功能
+
+home_page.py
+
+```python
+class HomePage:
+  def __init__(self):
+    self.driver = webdriver.Chrome()
+    self.driver.implicitly_wait(10)
+    self.driver.get("...")
+    
+	def goto_register(self):
+		self.driver.find_element_by_id("register").click()
+  	return RegisterPage(self.driver)
+  
+  def goto_login(self):
+    self.driver.find_element_by_id("login").click()
+    return LoginPage(self.driver)
+```
+
+register_page.py
+
+```python
+class RegisterPage:
+  def __init__(self, driver):
+    self.driver = driver
+    
+	def register(self):
+    pass
+```
+
+login_page.py
+
+```python
+class LoginPage:
+  def __init__(self, driver):
+    self.driver = driver
+  
+  def goto_register(self):
+		self.driver.find_element_by_id("register").click()
+  	return RegisterPage(self.driver)
+  
+  def login(self):
+    pass
+  
+	def forget_password(self)
+  	pass
+```
+
+测试
+
+cases
+
+test_register.py
+
+```python
+class TestRegister:
+  def test_register(self):
+    home = HomePage()
+    home.goto_register().register()
+	
+  def test_register_from_login(self):
+    home = HomePage()
+    home.goto_login().goto_register().register()
+    
+```
+
+
 
