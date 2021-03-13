@@ -371,7 +371,7 @@ PASSED
 
 `accept()` 确认
 
-​	- `driver.switch_to.alert.acceppt()`
+- `driver.switch_to.alert.acceppt()`
 
 `dismiss` 取消
 
