@@ -6,7 +6,7 @@ class TestAddress:
         self.token = self.get_token()
 
     def get_token(self):
-        r = requests.get("https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid=ww98204926c654b719&corpsecret=bplFIHGfq_omPNFv16kkLH2YYIgRn2P89OB2I3YXrqg")
+        r = requests.get("https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid=xx")
         return r.json()["access_token"]
 
     # def test_create_user(self):
