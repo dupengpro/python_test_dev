@@ -51,7 +51,6 @@ pyparsing==2.4.7
 pyperclip==1.8.2
 pytest==6.2.2
 pytest-dependency==0.5.1
-pytest-encode @ file:///Users/bytedance/Documents/python_test_dev/pytest/pytest-encode/dist/pytest_encode-0.1-py3-none-any.whl
 pytest-forked==1.3.0
 pytest-ordering==0.6
 pytest-rerunfailures==9.1.1
